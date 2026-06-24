@@ -3,224 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUI SHOP - Smart Grocery</title>
+    <title>PUI SHOP - Membership</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Kanit', sans-serif; }
-        .hidden { display: none; }
-        .loader { border-top-color: #3b82f6; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap'); body { font-family: 'Kanit', sans-serif; }</style>
 </head>
-<body class="bg-slate-50">
+<body class="bg-gray-100">
 
-    <!-- ส่วนโหลด (Loader) -->
-    <div id="loader" class="fixed inset-0 bg-white/90 z-[9999] flex flex-col items-center justify-center hidden">
-        <div class="loader w-12 h-12 border-4 border-slate-200 rounded-full mb-4"></div>
-        <p class="text-blue-600 font-bold">กำลังดำเนินการ...</p>
-    </div>
+    <div id="loader" class="fixed inset-0 bg-white/80 z-[99] flex items-center justify-center hidden font-bold">กำลังดำเนินการ...</div>
 
-    <!-- 1. หน้าเข้าสู่ระบบ (Login) -->
-    <div id="page-login" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-md border border-slate-100">
-            <div class="text-center mb-8">
-                <div class="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
-                    <span class="text-3xl text-white">🏪</span>
-                </div>
-                <h2 class="text-2xl font-bold text-slate-800">เข้าสู่ระบบร้านค้า</h2>
+    <!-- หน้า LOGIN / REGISTER -->
+    <div id="page-auth" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md">
+            <div id="login-form">
+                <h2 class="text-3xl font-bold mb-6 text-center text-blue-600 italic">PUI SHOP</h2>
+                <input type="email" id="l-email" placeholder="อีเมล" class="w-full p-4 mb-4 bg-gray-50 rounded-xl border">
+                <input type="password" id="l-pass" placeholder="รหัสผ่าน" class="w-full p-4 mb-4 bg-gray-50 rounded-xl border">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold">เข้าสู่ระบบ</button>
+                <button onclick="toggleAuth(false)" class="w-full mt-4 text-gray-500 text-sm">ยังไม่มีบัญชี? สมัครสมาชิก</button>
             </div>
-            <div class="space-y-4">
-                <input type="email" id="login-email" placeholder="อีเมล (admin@test.com)" class="w-full p-4 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-400">
-                <input type="password" id="login-pass" placeholder="รหัสผ่าน (1234)" class="w-full p-4 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-400">
-                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition active:scale-95 shadow-lg shadow-blue-100">
-                    ล็อกอิน
-                </button>
+            <div id="register-form" class="hidden">
+                <h2 class="text-2xl font-bold mb-6 text-center">สมัครสมาชิก</h2>
+                <input type="email" id="r-email" placeholder="อีเมล" class="w-full p-3 mb-3 border rounded-xl">
+                <input type="password" id="r-pass" placeholder="รหัสผ่าน" class="w-full p-3 mb-3 border rounded-xl">
+                <input type="text" id="r-name" placeholder="ชื่อ-นามสกุล" class="w-full p-3 mb-3 border rounded-xl">
+                <textarea id="r-addr" placeholder="ที่อยู่จัดส่งสินค้า" class="w-full p-3 mb-3 border rounded-xl"></textarea>
+                <input type="text" id="r-phone" placeholder="เบอร์โทรศัพท์" class="w-full p-3 mb-3 border rounded-xl">
+                <button onclick="handleRegister()" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold">ส่งข้อมูลสมัครสมาชิก</button>
+                <button onclick="toggleAuth(true)" class="w-full mt-4 text-gray-500 text-sm">กลับหน้าล็อกอิน</button>
             </div>
         </div>
     </div>
 
-    <!-- 2. ส่วนเนื้อหาหลัก (Main App) -->
-    <div id="main-app" class="hidden min-h-screen flex flex-col">
-        <header class="bg-white border-b sticky top-0 z-40">
-            <div class="container mx-auto p-4 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <img id="store-logo" src="" class="w-10 h-10 rounded-lg object-cover bg-slate-100 border">
-                    <span id="store-name" class="font-bold text-xl text-slate-800">Grocery Store</span>
-                </div>
-                <button onclick="logout()" class="text-red-500 bg-red-50 px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-100">ออก</button>
+    <!-- ส่วนหลักของแอป -->
+    <div id="main-app" class="hidden min-h-screen flex flex-col pb-20">
+        <header class="bg-white p-4 shadow-sm flex justify-between items-center sticky top-0 z-40">
+            <div class="flex items-center gap-2">
+                <img id="st-logo" src="" class="w-10 h-10 rounded-lg">
+                <span id="st-name" class="font-bold">Store</span>
             </div>
+            <button onclick="logout()" class="text-red-500 font-bold text-xs">ออกจากระบบ</button>
         </header>
 
         <main class="container mx-auto p-4 flex-1">
-            
-            <!-- VIEW: เจ้าของร้าน (Admin) -->
-            <div id="view-admin" class="hidden max-w-5xl mx-auto grid md:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-xl mb-6 text-slate-800">📦 จัดการสินค้า</h3>
-                    <div class="flex gap-2 mb-6">
-                        <input type="text" id="p-name" placeholder="ชื่อสินค้า" class="flex-1 p-3 bg-slate-50 rounded-xl outline-none border focus:border-blue-400">
-                        <input type="number" id="p-price" placeholder="ราคา" class="w-24 p-3 bg-slate-50 rounded-xl outline-none border focus:border-blue-400">
-                        <button onclick="addProduct()" class="bg-blue-600 text-white px-6 rounded-xl font-bold hover:bg-blue-700">+</button>
-                    </div>
-                    <div id="stock-list" class="divide-y max-h-[50vh] overflow-y-auto"></div>
+            <!-- VIEW: สั่งซื้อ -->
+            <div id="view-buy" class="space-y-6">
+                <div class="bg-blue-600 p-6 rounded-3xl text-white shadow-lg">
+                    <h3 class="font-bold mb-2">📝 แสกนรายการสั่งซื้อ</h3>
+                    <input type="file" id="scan-input" accept="image/*" class="mb-4 text-sm block w-full">
+                    <button onclick="doOCR()" class="w-full bg-white text-blue-600 py-3 rounded-xl font-bold">เริ่มอ่านลายมือ</button>
                 </div>
-
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-xl mb-6 text-slate-800">⚙️ ตั้งค่าร้าน</h3>
-                    <div class="space-y-4">
-                        <input type="text" id="s-name" placeholder="ชื่อร้าน" class="w-full p-3 bg-slate-50 rounded-xl border outline-none focus:border-blue-400">
-                        <input type="text" id="s-logo" placeholder="URL รูปโลโก้" class="w-full p-3 bg-slate-50 rounded-xl border outline-none focus:border-blue-400">
-                        <input type="text" id="s-pp" placeholder="เบอร์ PromptPay" class="w-full p-3 bg-slate-50 rounded-xl border outline-none focus:border-blue-400">
-                        <button onclick="saveSettings()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-black transition">บันทึกข้อมูล</button>
+                <div id="ocr-results" class="space-y-2"></div>
+                
+                <div class="bg-white p-6 rounded-3xl shadow-sm border">
+                    <h3 class="font-bold mb-4">🛒 ตะกร้าสินค้า</h3>
+                    <div id="cart-list" class="divide-y mb-4"></div>
+                    <div class="text-2xl font-black flex justify-between mb-6"><span>รวม:</span><span class="text-blue-600"><span id="cart-total">0</span> ฿</span></div>
+                    
+                    <div id="pay-section" class="hidden space-y-4 border-t pt-4 text-center">
+                        <img id="qr-img" src="" class="mx-auto border-4 rounded-xl shadow-lg mb-4">
+                        <p class="text-sm font-bold text-gray-500">แนบสลิปเพื่อยืนยัน</p>
+                        <input type="file" id="slip-input" accept="image/*" class="w-full text-xs">
+                        <button onclick="submitOrder()" class="w-full bg-green-600 text-white py-4 rounded-2xl font-bold">ยืนยันการสั่งซื้อ</button>
                     </div>
-                </div>
-            </div>
-
-            <!-- VIEW: ผู้ซื้อ (Buyer) -->
-            <div id="view-buyer" class="hidden grid lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl">
-                        <h2 class="text-2xl font-bold mb-2">แสกนรายการสั่งของ 📝</h2>
-                        <p class="text-blue-100 mb-6 font-light">ถ่ายรูปรายการที่เขียนใส่กระดาษเพื่อสั่งของ</p>
-                        <div class="flex flex-wrap gap-3">
-                            <input type="file" id="scan-input" accept="image/*" class="hidden">
-                            <button onclick="document.getElementById('scan-input').click()" class="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl font-semibold backdrop-blur-sm">เลือกรูป</button>
-                            <button onclick="processOCR()" class="bg-white text-blue-600 px-8 py-3 rounded-xl font-bold shadow-lg">เริ่มแสกน</button>
-                        </div>
-                    </div>
-                    <div id="ocr-results" class="grid gap-3"></div>
-                </div>
-
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 h-fit sticky top-24">
-                    <h3 class="font-bold text-xl mb-6">ตะกร้า 🛒</h3>
-                    <div id="cart-list" class="divide-y mb-6 max-h-[40vh] overflow-y-auto">
-                        <p class="text-center text-slate-400 py-10">ยังไม่มีสินค้า</p>
-                    </div>
-                    <div class="flex justify-between text-3xl font-black mb-6">
-                        <span>รวม:</span>
-                        <span class="text-blue-600"><span id="cart-total">0</span> ฿</span>
-                    </div>
-                    <button onclick="checkout()" class="w-full bg-green-500 text-white py-5 rounded-2xl font-black text-xl hover:bg-green-600 shadow-lg shadow-green-100 transition-transform active:scale-95">จ่ายเงิน</button>
-                    <div id="qr-area" class="mt-6 hidden text-center p-4 bg-slate-50 rounded-2xl border-2 border-dashed">
-                        <img id="qr-code" src="" class="mx-auto rounded-lg shadow-md mb-2">
-                        <p class="text-green-600 font-bold">แสกน QR จ่ายเงิน</p>
-                    </div>
+                    <button id="btn-pay" onclick="showPay()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold">ชำระเงิน</button>
                 </div>
             </div>
 
+            <!-- VIEW: สถานะออเดอร์ -->
+            <div id="view-orders" class="hidden space-y-4">
+                <h3 class="font-bold text-xl">สถานะการสั่งซื้อ</h3>
+                <div id="orders-list" class="space-y-4"></div>
+            </div>
+
+            <!-- VIEW: แอดมิน -->
+            <div id="view-admin" class="hidden space-y-8">
+                <section>
+                    <h3 class="font-bold text-orange-600 mb-4">👤 สมาชิกที่รออนุมัติ</h3>
+                    <div id="pending-users" class="space-y-3"></div>
+                </section>
+                <section>
+                    <h3 class="font-bold text-blue-600 mb-4">📦 จัดการออเดอร์ลูกค้า</h3>
+                    <div id="admin-orders" class="space-y-4"></div>
+                </section>
+            </div>
         </main>
+
+        <!-- Bottom Menu -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-3 text-[10px] font-bold text-gray-400">
+            <button onclick="switchView('buy')" id="nav-buy" class="text-blue-600">สั่งซื้อ</button>
+            <button onclick="switchView('orders')" id="nav-orders">ออเดอร์</button>
+            <button onclick="switchView('admin')" id="nav-admin" class="hidden">แอดมิน</button>
+        </nav>
     </div>
 
     <script>
-        // URL ใหม่ที่คุณให้มา
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwEjxkGdnpER7j7ziPN2RKHAZoSWoi0FJEJgUS6DfeHylRG2dIG9NG1AFFLXaOi_H5YzA/exec";
-        
-        let products = [];
-        let cart = [];
-        let settings = {};
-        let user = JSON.parse(localStorage.getItem('user_data'));
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwesm55NxCJd7KFXGAf1hnERjKZp7vtPxVl5Kr1CCwjWyUHrb5-PaYBy_XosLr8Q8j6LA/exec";
+        let products = [], cart = [], settings = {}, user = JSON.parse(localStorage.getItem('puis_user'));
 
-        // --- ฟังชันเรียก API แบบปลอดภัย ---
-        async function callAPI(action, data = {}) {
-            toggleLoader(true);
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action, ...data })
-                });
-                const text = await response.text();
-                return JSON.parse(text); // แปลงเป็น JSON เองเพื่อเลี่ยง SyntaxError
-            } catch (e) {
-                console.error("API Error:", e);
-                return { success: false };
-            } finally {
-                toggleLoader(false);
-            }
+        // --- AUTH ---
+        function toggleAuth(isLogin) {
+            document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+            document.getElementById('register-form').classList.toggle('hidden', isLogin);
         }
 
-        // --- ระบบ Login ---
-        async function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-pass').value;
-            if(!email || !password) return alert("กรุณากรอกข้อมูล");
-
-            const res = await callAPI('login', { email, password });
-            if (res.success) {
-                localStorage.setItem('user_data', JSON.stringify(res));
-                user = res;
-                init();
-            } else {
-                alert("อีเมลหรือรหัสผ่านผิด");
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('user_data');
+        async function handleRegister() {
+            const data = {
+                action: 'register',
+                email: document.getElementById('r-email').value,
+                password: document.getElementById('r-pass').value,
+                name: document.getElementById('r-name').value,
+                address: document.getElementById('r-addr').value,
+                phone: document.getElementById('r-phone').value
+            };
+            if(!data.email || !data.name) return alert("กรุณากรอกข้อมูลให้ครบ");
+            showLoader(true);
+            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) });
+            alert("สมัครสมาชิกสำเร็จ! กรุณารอร้านค้าอนุมัติก่อนเข้าสู่ระบบ");
             location.reload();
         }
 
-        // --- เริ่มต้นโหลดข้อมูล ---
-        async function init() {
-            if (!user) return;
-            document.getElementById('page-login').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-
-            toggleLoader(true);
-            try {
-                const res = await fetch(`${SCRIPT_URL}?action=getInitialData`);
-                const data = await res.json();
-                
-                products = data.products.map(p => ({ id: p[0], name: p[1], price: p[2] }));
-                settings = { name: data.settings[0], logo: data.settings[1], pp: data.settings[2] };
-
-                document.getElementById('store-name').innerText = settings.name;
-                document.getElementById('store-logo').src = settings.logo || "https://via.placeholder.com/50";
-
-                if (user.role === 'admin') {
-                    document.getElementById('view-admin').classList.remove('hidden');
-                    document.getElementById('s-name').value = settings.name;
-                    document.getElementById('s-logo').value = settings.logo;
-                    document.getElementById('s-pp').value = settings.pp;
-                    renderStock();
-                } else {
-                    document.getElementById('view-buyer').classList.remove('hidden');
-                }
-            } catch (e) { console.error("Load Data Error", e); }
-            toggleLoader(false);
+        async function handleLogin() {
+            const email = document.getElementById('l-email').value;
+            const password = document.getElementById('l-pass').value;
+            showLoader(true);
+            const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'login', email, password }) });
+            const data = await res.json();
+            if(data.success) { localStorage.setItem('puis_user', JSON.stringify(data)); user = data; init(); }
+            else alert(data.message || "เข้าสู่ระบบไม่สำเร็จ");
+            showLoader(false);
         }
 
-        // --- หน้าผู้ซื้อ (OCR & Cart) ---
-        async function processOCR() {
+        async function init() {
+            if(!user) return;
+            document.getElementById('page-auth').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            if(user.role == 'admin') { document.getElementById('nav-admin').classList.remove('hidden'); }
+            
+            const res = await fetch(SCRIPT_URL + "?action=getInitialData");
+            const data = await res.json();
+            products = data.products.map(p => ({id:p[0], name:p[1], price:p[2]}));
+            settings = { name: data.settings[0], logo: data.settings[1], pp: data.settings[2] };
+            document.getElementById('st-name').innerText = settings.name;
+            document.getElementById('st-logo').src = settings.logo;
+            switchView('buy');
+        }
+
+        // --- BUYER ACTIONS ---
+        async function doOCR() {
             const file = document.getElementById('scan-input').files[0];
-            if (!file) return alert("เลือกรูปก่อนครับ");
-
-            toggleLoader(true);
-            const res = await Tesseract.recognize(file, 'tha+eng');
-            const lines = res.data.text.split('\n');
-            const resultDiv = document.getElementById('ocr-results');
-            resultDiv.innerHTML = "";
-
-            lines.forEach(line => {
-                if (line.trim().length < 2) return;
+            if(!file) return;
+            showLoader(true);
+            const result = await Tesseract.recognize(file, 'tha+eng');
+            const resDiv = document.getElementById('ocr-results');
+            resDiv.innerHTML = "";
+            result.data.text.split('\n').forEach(line => {
+                if(line.trim().length < 2) return;
                 const match = products.find(p => line.includes(p.name));
                 const div = document.createElement('div');
-                div.className = "flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm";
-                
-                if (match) {
-                    div.innerHTML = `<span>✅ <b>${match.name}</b> (${match.price}฿)</span> 
-                                     <button onclick="addToCart('${match.id}')" class="bg-blue-600 text-white px-4 py-1 rounded-xl font-bold">+</button>`;
+                div.className = "bg-white p-3 rounded-xl shadow-sm border flex justify-between items-center text-sm mb-2";
+                if(match) {
+                    div.innerHTML = `<span>✅ ${match.name}</span> <button onclick="addToCart('${match.id}')" class="bg-blue-600 text-white px-3 py-1 rounded-lg">+</button>`;
                 } else {
                     let opts = products.map(p => `<option value="${p.id}">${p.name} (${p.price}฿)</option>`).join('');
-                    div.innerHTML = `<span class="text-slate-400 italic text-sm">❓ "${line.substring(0,10)}..."</span>
-                                     <select onchange="addToCart(this.value)" class="text-xs border p-2 rounded-xl outline-none">
-                                        <option>เลือกสินค้า...</option>${opts}
-                                     </select>`;
+                    div.innerHTML = `<span class="text-gray-400 italic">❓ "${line.substring(0,10)}..."</span> <select onchange="addToCart(this.value)" class="border rounded p-1 text-[10px] w-24"><option>เลือก...</option>${opts}</select>`;
                 }
-                resultDiv.appendChild(div);
+                resDiv.appendChild(div);
             });
-            toggleLoader(false);
+            showLoader(false);
         }
 
         function addToCart(id) {
@@ -231,59 +181,112 @@
         function renderCart() {
             const list = document.getElementById('cart-list');
             let total = 0;
-            if(cart.length === 0) {
-                list.innerHTML = `<p class="text-center text-slate-400 py-10">ยังไม่มีสินค้า</p>`;
-                document.getElementById('cart-total').innerText = 0;
-                return;
-            }
             list.innerHTML = cart.map(item => {
                 total += parseFloat(item.price);
                 return `<div class="flex justify-between py-2 text-sm"><span>${item.name}</span><b>${item.price}฿</b></div>`;
             }).join('');
-            document.getElementById('cart-total').innerText = total.toLocaleString();
+            document.getElementById('cart-total').innerText = total;
         }
 
-        function checkout() {
-            const total = document.getElementById('cart-total').innerText.replace(/,/g, '');
+        function showPay() {
+            const total = document.getElementById('cart-total').innerText;
             if(total == "0") return;
-            document.getElementById('qr-code').src = `https://promptpay.io/${settings.pp}/${total}.png`;
-            document.getElementById('qr-area').classList.remove('hidden');
+            document.getElementById('qr-img').src = `https://promptpay.io/${settings.pp}/${total}.png`;
+            document.getElementById('pay-section').classList.remove('hidden');
+            document.getElementById('btn-pay').classList.add('hidden');
         }
 
-        // --- หน้าแอดมิน (Stock & Settings) ---
-        async function addProduct() {
-            const name = document.getElementById('p-name').value;
-            const price = document.getElementById('p-price').value;
-            if(!name || !price) return;
-            await callAPI('addProduct', { name, price });
-            location.reload();
+        async function submitOrder() {
+            const slip = document.getElementById('slip-input').files[0];
+            if(!slip) return alert("กรุณาแนบสลิป");
+            showLoader(true);
+            const reader = new FileReader();
+            reader.readAsDataURL(slip);
+            reader.onload = async () => {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'createOrder',
+                        email: user.email,
+                        customerInfo: `${user.name} | โทร: ${user.phone} | ที่อยู่: ${user.address}`,
+                        items: cart.map(i => i.name).join(', '),
+                        total: document.getElementById('cart-total').innerText,
+                        slip: reader.result
+                    })
+                });
+                alert("ส่งออเดอร์สำเร็จ!");
+                location.reload();
+            };
         }
 
-        async function saveSettings() {
-            const name = document.getElementById('s-name').value;
-            const logo = document.getElementById('s-logo').value;
-            const pp = document.getElementById('s-pp').value;
-            await callAPI('updateSettings', { name, logo, pp });
-            location.reload();
+        // --- ADMIN / ORDER VIEWS ---
+        async function loadOrders() {
+            const res = await fetch(SCRIPT_URL + "?action=getOrders");
+            const orders = await res.json();
+            const container = user.role == 'admin' ? 'admin-orders' : 'orders-list';
+            const display = user.role == 'admin' ? orders : orders.filter(o => o[1] == user.email);
+            
+            document.getElementById(container).innerHTML = display.reverse().map(o => `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border">
+                    <div class="flex justify-between text-[10px] text-gray-400 mb-1"><span>${o[0]}</span><span>${o[7]}</span></div>
+                    <div class="font-bold text-sm mb-1">${o[3]}</div>
+                    <div class="text-xs text-gray-500 mb-2">${o[2]}</div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-blue-600">${o[4]} ฿</span>
+                        <span class="bg-gray-100 px-3 py-1 rounded-full text-[10px] font-bold">${o[6]}</span>
+                    </div>
+                    ${user.role == 'admin' ? `
+                        <div class="mt-4 pt-4 border-t flex gap-2">
+                            <button onclick="viewSlip('${o[5]}')" class="bg-gray-100 text-[10px] p-2 rounded flex-1">ดูสลิป</button>
+                            <button onclick="updateStatus('${o[0]}','กำลังจัดของ')" class="bg-orange-500 text-white text-[10px] p-2 rounded flex-1">จัดของ</button>
+                            <button onclick="updateStatus('${o[0]}','จัดส่งสำเร็จ')" class="bg-green-600 text-white text-[10px] p-2 rounded flex-1">สำเร็จ</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
         }
 
-        function renderStock() {
-            document.getElementById('stock-list').innerHTML = products.map(p => `
-                <div class="flex justify-between py-3 items-center">
-                    <span>${p.name} (<b>${p.price}฿</b>)</span>
-                    <button onclick="deleteProduct('${p.id}')" class="text-red-500 font-bold">ลบ</button>
-                </div>`).join('');
+        async function updateStatus(id, status) {
+            showLoader(true);
+            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'updateOrderStatus', orderId: id, status: status }) });
+            loadOrders();
+            showLoader(false);
         }
 
-        async function deleteProduct(id) {
-            if(!confirm("ลบสินค้านี้?")) return;
-            await callAPI('deleteProduct', { id });
-            location.reload();
+        async function loadPendingUsers() {
+            const res = await fetch(SCRIPT_URL + "?action=getPendingUsers");
+            const users = await res.json();
+            document.getElementById('pending-users').innerHTML = users.map(u => `
+                <div class="bg-white p-4 rounded-2xl border shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">${u[2]}</p>
+                        <p class="text-xs text-gray-500">${u[4]}</p>
+                    </div>
+                    <button onclick="approveUser('${u[0]}')" class="bg-green-600 text-white text-xs px-4 py-2 rounded-xl">อนุมัติ</button>
+                </div>
+            `).join('');
         }
 
-        function toggleLoader(v) { document.getElementById('loader').classList.toggle('hidden', !v); }
+        async function approveUser(email) {
+            showLoader(true);
+            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'approveUser', email: email }) });
+            loadPendingUsers();
+            showLoader(false);
+        }
 
-        if (user) init();
+        function switchView(v) {
+            ['view-buy', 'view-orders', 'view-admin'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            ['nav-buy', 'nav-orders', 'nav-admin'].forEach(id => document.getElementById(id).classList.remove('text-blue-600'));
+            document.getElementById('view-'+v).classList.remove('hidden');
+            document.getElementById('nav-'+v).classList.add('text-blue-600');
+            if(v == 'orders') loadOrders();
+            if(v == 'admin') { loadPendingUsers(); loadOrders(); }
+        }
+
+        function viewSlip(url) { const w = window.open(""); w.document.write(`<img src="${url}" style="width:100%">`); }
+        function showLoader(v) { document.getElementById('loader').classList.toggle('hidden', !v); }
+        function logout() { localStorage.removeItem('puis_user'); location.reload(); }
+        if(user) init();
     </script>
 </body>
 </html>
