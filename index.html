@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบร้านขายของชำอัจฉริยะ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Library สำหรับอ่านลายมือ (OCR) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-blue-700 text-white p-4 shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img id="display-logo" src="https://via.placeholder.com/50" class="w-10 h-10 rounded-full bg-white object-cover border-2 border-white">
+                <h1 id="display-name" class="text-xl font-bold italic">กำลังโหลดร้านค้า...</h1>
+            </div>
+            <nav class="flex gap-2">
+                <button onclick="switchPage('buyer')" class="px-4 py-2 hover:bg-blue-600 rounded-lg transition">🛒 ซื้อของ</button>
+                <button onclick="switchPage('admin')" class="px-4 py-2 bg-blue-800 hover:bg-blue-900 rounded-lg transition font-semibold">⚙️ จัดการร้าน</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 max-w-6xl">
+        
+        <!-- ================= PAGE: BUYER (ผู้ซื้อ) ================= -->
+        <div id="page-buyer" class="grid md:grid-cols-2 gap-8">
+            
+            <!-- ส่วนแสกนรายการ (OCR) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-2xl">📝</span>
+                    <h2 class="text-xl font-bold text-gray-800">สั่งของด้วยรายการเขียนมือ</h2>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-xl mb-4 border border-blue-100">
+                    <p class="text-sm text-blue-700">💡 **วิธีใช้:** ถ่ายรูปรายการสินค้าที่เขียนใส่กระดาษ ระบบจะพยายามค้นหาสินค้าในร้านให้ทันที</p>
+                </div>
+                
+                <label class="block mb-4">
+                    <span class="sr-only">เลือกรูปภาพรายการ</span>
+                    <input type="file" id="scan-input" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                </label>
+                
+                <button onclick="scanHandwriting()" id="btn-scan" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-md transition-all flex justify-center items-center gap-2">
+                    <span id="scan-spinner" class="hidden animate-spin">🌀</span>
+                    แสกนลายมือภาษาไทย
+                </button>
+                
+                <div id="scan-status" class="text-center mt-3 text-blue-600 font-medium hidden">กำลังประมวลผล... โปรดรอสักครู่</div>
+
+                <div class="mt-8">
+                    <h3 class="font-bold text-gray-700 border-b pb-2 mb-3">ผลการแสกน</h3>
+                    <ul id="scan-results" class="space-y-3">
+                        <li class="text-gray-400 italic text-sm text-center py-4">ยังไม่มีรายการที่แสกน</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ตะกร้าสินค้าและการจ่ายเงิน -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 h-fit sticky top-24">
+                <div class="flex items-center gap-2 mb-6">
+                    <span class="text-2xl">🛒</span>
+                    <h2 class="text-xl font-bold text-gray-800">ตะกร้าของฉัน</h2>
+                </div>
+                
+                <div id="cart-items" class="divide-y border-t border-b mb-6 max-h-60 overflow-y-auto">
+                    <p class="text-center py-8 text-gray-400">ยังไม่มีสินค้าในตะกร้า</p>
+                </div>
+
+                <div class="flex justify-between items-center text-2xl font-black text-gray-900 mb-6">
+                    <span>ยอดรวมทั้งหมด:</span>
+                    <span class="text-blue-600"><span id="cart-total">0</span> ฿</span>
+                </div>
+
+                <button onclick="payPromptPay()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-xl shadow-lg transition-transform active:scale-95 mb-4">
+                    ชำระเงินผ่าน QR Code
+                </button>
+
+                <div id="qr-display" class="hidden bg-gray-50 p-6 rounded-2xl border-2 border-dashed border-gray-300 text-center">
+                    <p class="text-green-700 font-bold mb-3">✅ สร้าง QR Code สำเร็จ</p>
+                    <img id="qr-img" src="" class="mx-auto rounded-lg shadow-sm bg-white p-2">
+                    <p class="text-xs text-gray-500 mt-4 italic">*กรุณาตรวจสอบยอดเงินและชื่อร้านก่อนโอน*</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE: ADMIN (เจ้าของร้าน) ================= -->
+        <div id="page-admin" class="hidden max-w-4xl mx-auto space-y-8 pb-20">
+            <h2 class="text-3xl font-black text-gray-800">⚙️ แผงควบคุมเจ้าของร้าน</h2>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- ตั้งค่าร้าน -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-lg mb-4 text-blue-700 border-b pb-2">ข้อมูลร้านค้า</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">ชื่อร้าน</label>
+                            <input type="text" id="set-name" class="w-full border p-3 rounded-xl mt-1 focus:ring-2 focus:ring-blue-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">URL รูปโลโก้ (จากเว็บ)</label>
+                            <input type="text" id="set-logo" class="w-full border p-3 rounded-xl mt-1 focus:ring-2 focus:ring-blue-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">เบอร์ PromptPay (รับเงิน)</label>
+                            <input type="text" id="set-pp" class="w-full border p-3 rounded-xl mt-1 focus:ring-2 focus:ring-blue-400 outline-none" placeholder="08xxxxxxxx">
+                        </div>
+                        <button onclick="updateSettings()" class="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition">บันทึกการตั้งค่า</button>
+                    </div>
+                </div>
+
+                <!-- เพิ่มสินค้า -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-lg mb-4 text-green-700 border-b pb-2">คลังสินค้า</h3>
+                    <div class="flex gap-2 mb-6">
+                        <input type="text" id="add-name" placeholder="ชื่อสินค้า" class="flex-1 border p-3 rounded-xl focus:ring-2 focus:ring-green-400 outline-none">
+                        <input type="number" id="add-price" placeholder="ราคา" class="w-24 border p-3 rounded-xl focus:ring-2 focus:ring-green-400 outline-none">
+                        <button onclick="addProduct()" class="bg-green-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-green-700">เพิ่ม</button>
+                    </div>
+                    
+                    <div class="overflow-y-auto max-h-80">
+                        <ul id="stock-list" class="divide-y text-gray-700">
+                            <!-- รายการสต็อก -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // *** เชื่อมต่อกับ URL ของคุณ ***
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx5JhO5CDS7ajKZtjG2uZFku6z_DfCYS40qb8nvsag8KdBbmc_uUzk9RBAN6izWjVm9Ww/exec";
+
+        let products = [];
+        let cart = [];
+        let storeSettings = {};
+
+        // 1. โหลดข้อมูลทั้งหมดเมื่อเปิดเว็บ
+        async function loadData() {
+            try {
+                const resp = await fetch(`${SCRIPT_URL}?action=getData`);
+                const data = await resp.json();
+                
+                // จัดการสินค้า
+                products = data.products.map(p => ({ id: p[0], name: p[1], price: p[2] }));
+                
+                // จัดการข้อมูลร้าน
+                storeSettings = { name: data.settings[0], logo: data.settings[1], pp: data.settings[2] };
+                
+                // อัปเดต UI
+                document.getElementById('display-name').innerText = storeSettings.name;
+                document.getElementById('display-logo').src = storeSettings.logo || "https://via.placeholder.com/50";
+                
+                // ใส่ค่าในหน้า Admin
+                document.getElementById('set-name').value = storeSettings.name;
+                document.getElementById('set-logo').value = storeSettings.logo;
+                document.getElementById('set-pp').value = storeSettings.pp;
+                
+                renderStock();
+            } catch (err) {
+                console.error("โหลดข้อมูลไม่สำเร็จ:", err);
+            }
+        }
+
+        // 2. ฟังก์ชัน OCR (แสกนลายมือ)
+        async function scanHandwriting() {
+            const fileInput = document.getElementById('scan-input');
+            const file = fileInput.files[0];
+            if(!file) return alert("กรุณาเลือกรูปรายการที่เขียนไว้ก่อนครับ");
+
+            const status = document.getElementById('scan-status');
+            const spinner = document.getElementById('scan-spinner');
+            status.classList.remove('hidden');
+            spinner.classList.remove('hidden');
+
+            try {
+                const result = await Tesseract.recognize(file, 'tha+eng');
+                const lines = result.data.text.split('\n');
+                
+                const resultsUI = document.getElementById('scan-results');
+                resultsUI.innerHTML = "";
+
+                lines.forEach(line => {
+                    if(line.trim().length < 2) return;
+                    
+                    const match = products.find(p => line.includes(p.name));
+                    const li = document.createElement('li');
+                    li.className = "flex justify-between items-center bg-blue-50 p-3 rounded-xl border border-blue-100";
+
+                    if(match) {
+                        li.innerHTML = `<span class="font-medium text-gray-800">✅ ${match.name} (${match.price}฿)</span> 
+                                        <button onclick="addToCart('${match.id}')" class="bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-bold hover:bg-blue-700 shadow-sm transition">เพิ่ม</button>`;
+                    } else {
+                        let options = products.map(p => `<option value="${p.id}">${p.name} (${p.price}฿)</option>`).join('');
+                        li.innerHTML = `<div class="flex flex-col gap-1 w-full">
+                                            <span class="text-xs text-gray-500 font-bold italic">❓ ไม่แน่ใจคำว่า: "${line.substring(0,20)}"</span> 
+                                            <select onchange="addToCart(this.value)" class="text-xs border border-gray-300 rounded-lg p-2 outline-none focus:ring-1 focus:ring-blue-400 bg-white">
+                                                <option>— เลือกสินค้าที่ถูกต้อง —</option>
+                                                ${options}
+                                            </select>
+                                        </div>`;
+                    }
+                    resultsUI.appendChild(li);
+                });
+            } catch (e) {
+                alert("เกิดข้อผิดพลาดในการแสกนลายมือ");
+            } finally {
+                status.classList.add('hidden');
+                spinner.classList.add('hidden');
+            }
+        }
+
+        // 3. จัดการตะกร้า
+        function addToCart(id) {
+            const p = products.find(i => i.id == id);
+            if(p) {
+                cart.push({...p, cartId: Date.now()});
+                renderCart();
+            }
+        }
+
+        function removeFromCart(cartId) {
+            cart = cart.filter(item => item.cartId !== cartId);
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cart-items');
+            const totalSpan = document.getElementById('cart-total');
+            let total = 0;
+
+            if(cart.length === 0) {
+                list.innerHTML = `<p class="text-center py-8 text-gray-400">ยังไม่มีสินค้าในตะกร้า</p>`;
+                totalSpan.innerText = "0";
+                return;
+            }
+
+            list.innerHTML = cart.map((item) => {
+                total += parseFloat(item.price);
+                return `<div class="flex justify-between items-center py-3">
+                            <div>
+                                <p class="font-bold text-gray-800">${item.name}</p>
+                                <p class="text-xs text-gray-500">${item.price} บาท</p>
+                            </div>
+                            <button onclick="removeFromCart(${item.cartId})" class="text-red-400 hover:text-red-600 font-bold">ลบ</button>
+                        </div>`;
+            }).join('');
+            totalSpan.innerText = total.toLocaleString();
+        }
+
+        // 4. สร้าง QR Code จ่ายเงิน
+        function payPromptPay() {
+            const total = document.getElementById('cart-total').innerText.replace(/,/g, '');
+            if(total == "0") return alert("ตะกร้าว่างเปล่าครับ");
+            if(!storeSettings.pp) return alert("เจ้าของร้านยังไม่ได้ตั้งเบอร์ PromptPay");
+
+            const qrImg = document.getElementById('qr-img');
+            const qrArea = document.getElementById('qr-display');
+            
+            qrImg.src = `https://promptpay.io/${storeSettings.pp}/${total}.png`;
+            qrArea.classList.remove('hidden');
+            qrArea.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 5. ระบบหลังบ้าน (Admin)
+        async function updateSettings() {
+            const name = document.getElementById('set-name').value;
+            const logo = document.getElementById('set-logo').value;
+            const pp = document.getElementById('set-pp').value;
+            
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ action: "updateSettings", name, logo, pp })
+            });
+            alert("บันทึกสำเร็จ! (ข้อมูลอาจใช้เวลาอัปเดตสักครู่)");
+            location.reload();
+        }
+
+        async function addProduct() {
+            const name = document.getElementById('add-name').value;
+            const price = document.getElementById('add-price').value;
+            if(!name || !price) return alert("กรุณากรอกชื่อและราคา");
+
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ action: "addProduct", name, price })
+            });
+            alert("เพิ่มสินค้าสำเร็จ");
+            loadData();
+            document.getElementById('add-name').value = "";
+            document.getElementById('add-price').value = "";
+        }
+
+        async function deleteProduct(id) {
+            if(!confirm("ยืนยันการลบสินค้านี้?")) return;
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ action: "deleteProduct", id })
+            });
+            loadData();
+        }
+
+        function renderStock() {
+            const list = document.getElementById('stock-list');
+            list.innerHTML = products.map(p => `
+                <li class="flex justify-between items-center py-3 border-b border-gray-50 hover:bg-gray-50 px-2 rounded-lg transition">
+                    <span class="font-medium font-bold">${p.name} <span class="text-blue-600 ml-2">${p.price}฿</span></span>
+                    <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:underline text-sm font-bold">ลบ</button>
+                </li>
+            `).join('');
+        }
+
+        // สลับหน้าจอ
+        function switchPage(page) {
+            document.getElementById('page-buyer').classList.toggle('hidden', page !== 'buyer');
+            document.getElementById('page-admin').classList.toggle('hidden', page !== 'admin');
+        }
+
+        // เริ่มโหลดข้อมูล
+        loadData();
+    </script>
+</body>
+</html>
